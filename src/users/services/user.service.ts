@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
@@ -44,7 +45,7 @@ export class UserService {
     }
   }
 
-  async create(user: UserDto) {
+  async create(user: UserDto, confirmPassword: string) {
     const loginExists = await this.userModel.findOne({ login: user.login });
     const emailExists = await this.userModel.findOne({ email: user.email });
 
@@ -60,9 +61,21 @@ export class UserService {
         HttpStatus.CONFLICT,
       );
     }
+    if (user.password != confirmPassword) {
+      throw new HttpException(
+        'Passwords are not the same',
+        HttpStatus.CONFLICT,
+      );
+    }
 
     try {
-      const createdUser = new this.userModel(user);
+      const salt = bcrypt.genSaltSync(10);
+      const hashedPassword = bcrypt.hashSync(user.password, salt);
+
+      const createdUser = new this.userModel({
+        ...user,
+        password: hashedPassword,
+      });
       await createdUser.save();
 
       return { msg: 'User created with successfully' };

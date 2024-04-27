@@ -26,8 +26,11 @@ export class UsersController {
   }
 
   @Post('/register')
-  async create(@Body() user: UserDto) {
-    return this.userService.create(user);
+  async create(
+    @Body() user: UserDto,
+    @Body('confirmPassword') confirmPassword: string,
+  ) {
+    return this.userService.create(user, confirmPassword);
   }
 
   @Put('/update/:id')
