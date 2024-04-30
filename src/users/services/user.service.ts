@@ -15,7 +15,11 @@ export class UserService {
 
   async getAll() {
     try {
-      return await this.userModel.find().exec();
+      const users = await this.userModel.find().exec();
+      return {
+        ...users,
+        password: undefined,
+      };
     } catch (error) {
       throw new HttpException(
         'Failed to retrieve users',
@@ -69,8 +73,8 @@ export class UserService {
     }
 
     try {
-      const salt = bcrypt.genSaltSync(10);
-      const hashedPassword = bcrypt.hashSync(user.password, salt);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(user.password, salt);
 
       const createdUser = new this.userModel({
         ...user,
@@ -97,7 +101,7 @@ export class UserService {
       }
 
       await this.userModel.updateOne({ _id: id }, user).exec();
-      return this.getById(id);
+      return { msg: 'User updated with successfully' };
     } catch (error) {
       throw new HttpException(
         'Failed to update user',
@@ -123,5 +127,9 @@ export class UserService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  findByLogin(login: string) {
+    return this.userModel.findOne({ login: login });
   }
 }
