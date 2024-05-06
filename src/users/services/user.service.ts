@@ -4,10 +4,15 @@ import mongoose, { Model } from 'mongoose';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import * as bcrypt from 'bcryptjs';
+import { UploadService } from 'src/upload/upload.service';
+import { fileDTO } from 'src/upload/upload.dto';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel('User') private readonly userModel: Model<User>) {}
+  constructor(
+    @InjectModel('User') private readonly userModel: Model<User>,
+    private readonly uploadService: UploadService,
+  ) {}
 
   isValidObjectId(id: string): boolean {
     return mongoose.Types.ObjectId.isValid(id);
@@ -49,7 +54,7 @@ export class UserService {
     }
   }
 
-  async create(user: UserDto, confirmPassword: string) {
+  async create(user: UserDto, confirmPassword: string, image: fileDTO) {
     const loginExists = await this.userModel.findOne({ login: user.login });
     const emailExists = await this.userModel.findOne({ email: user.email });
 
@@ -72,6 +77,8 @@ export class UserService {
       );
     }
 
+    const imageURL = this.uploadService.upload(image);
+
     try {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user.password, salt);
@@ -79,6 +86,7 @@ export class UserService {
       const createdUser = new this.userModel({
         ...user,
         password: hashedPassword,
+        image: imageURL,
       });
       await createdUser.save();
 

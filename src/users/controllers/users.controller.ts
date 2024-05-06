@@ -6,10 +6,14 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { fileDTO } from 'src/upload/upload.dto';
 
 @Controller('users')
 export class UsersController {
@@ -26,11 +30,13 @@ export class UsersController {
   }
 
   @Post('/register')
+  @UseInterceptors(FileInterceptor('image'))
   async create(
     @Body() user: UserDto,
     @Body('confirmPassword') confirmPassword: string,
+    @UploadedFile() image: fileDTO,
   ) {
-    return this.userService.create(user, confirmPassword);
+    return this.userService.create(user, confirmPassword, image);
   }
 
   @Put('/update/:id')

@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty } from 'class-validator';
+import { fileDTO } from 'src/upload/upload.dto';
 
 export class UserDto {
   @IsNotEmpty()
