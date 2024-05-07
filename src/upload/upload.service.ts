@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { fileDTO } from './upload.dto';
 import { createClient } from '@supabase/supabase-js';
 
@@ -20,10 +20,18 @@ export class UploadService {
         upsert: true,
       });
 
+    if (error) {
+      throw new Error('Failed to upload');
+    }
+
     const imageURL = await supabase.storage
       .from('users-images')
-      .createSignedUrl(data.path, 31536000);
+      .createSignedUrl(data.path, 31536000 * 2000);
 
-    return { imageURL };
+    try {
+      return imageURL.data.signedUrl;
+    } catch (error) {
+      throw new HttpException('Failed to upload:', HttpStatus.CONFLICT);
+    }
   }
 }

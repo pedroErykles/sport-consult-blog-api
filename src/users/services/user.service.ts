@@ -77,9 +77,9 @@ export class UserService {
       );
     }
 
-    const imageURL = this.uploadService.upload(image);
-
     try {
+      const imageURL = await this.uploadService.upload(image);
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user.password, salt);
 
@@ -92,6 +92,7 @@ export class UserService {
 
       return { msg: 'User created with successfully' };
     } catch (error) {
+      console.log(error);
       throw new HttpException(
         'Failed to create user',
         HttpStatus.INTERNAL_SERVER_ERROR,
