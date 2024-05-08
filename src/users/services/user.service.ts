@@ -4,8 +4,8 @@ import mongoose, { Model } from 'mongoose';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import * as bcrypt from 'bcryptjs';
-import { UploadService } from 'src/upload/upload.service';
-import { fileDTO } from 'src/upload/upload.dto';
+import { UploadService } from 'src/shared/upload/upload.service';
+import { fileDTO } from 'src/shared/upload/upload.dto';
 
 @Injectable()
 export class UserService {
@@ -78,7 +78,7 @@ export class UserService {
     }
 
     try {
-      const imageURL = await this.uploadService.upload(image);
+      const imageURL = await this.uploadService.upload(image, 'users-images');
 
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user.password, salt);

@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class UploadService {
-  async upload(file: fileDTO) {
+  async upload(file: fileDTO, bucket: String) {
     const supabaseURL = process.env.SUPABASE_URL;
     const supabaseKEY = process.env.SUPABASE_KEY;
 
@@ -21,17 +21,17 @@ export class UploadService {
       });
 
     if (error) {
-      throw new Error('Failed to upload');
+      throw new Error('Failed to upload: ');
     }
 
     const imageURL = await supabase.storage
-      .from('users-images')
+      .from(`${bucket}`)
       .createSignedUrl(data.path, 31536000 * 2000);
 
     try {
       return imageURL.data.signedUrl;
     } catch (error) {
-      throw new HttpException('Failed to upload:', HttpStatus.CONFLICT);
+      throw new HttpException('Failed to upload', HttpStatus.CONFLICT);
     }
   }
 }

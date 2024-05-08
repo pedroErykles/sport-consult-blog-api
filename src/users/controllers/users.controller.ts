@@ -13,7 +13,7 @@ import { UserService } from '../services/user.service';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { fileDTO } from 'src/upload/upload.dto';
+import { fileDTO } from 'src/shared/upload/upload.dto';
 import { IsPublic } from 'src/auth/decorators/is-public.decorator';
 
 @Controller('users')
