@@ -57,6 +57,7 @@ export class UserService {
   async create(user: UserDto, confirmPassword: string, image: fileDTO) {
     const loginExists = await this.userModel.findOne({ login: user.login });
     const emailExists = await this.userModel.findOne({ email: user.email });
+    let imageURL = '';
 
     if (loginExists) {
       throw new HttpException(
@@ -77,9 +78,11 @@ export class UserService {
       );
     }
 
-    try {
-      const imageURL = await this.uploadService.upload(image, 'users-images');
+    if (image) {
+      imageURL = await this.uploadService.upload(image, 'users-images');
+    }
 
+    try {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user.password, salt);
 
