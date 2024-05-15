@@ -44,7 +44,7 @@ export class PlayersController {
 
   @Get('/trash')
   async getTrash() {
-    return await this.playerService.findTrash();
+    return await this.playerService.pullDataFromTrash();
   }
 
   @IsPublic()
@@ -59,6 +59,7 @@ export class PlayersController {
 
   @Post()
   async create(@Body() player: PlayerDto) {
+    console.log(player);
     return this.playerService.create(player);
   }
 
@@ -68,13 +69,13 @@ export class PlayersController {
       throw new HttpException(`It's not a valid id`, 400);
     }
 
-    return await this.playerService.recover(id);
+    return await this.playerService.recoverFromTrash(id);
   }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() player: PlayerDto) {
     if (!isValidObjectId(id)) {
-      throw new HttpException(`It's not a valid id`, 400);
+      throw new HttpException(`Invalid id: ${id}`, 400);
     }
 
     return await this.playerService.update(id, player);
@@ -87,9 +88,13 @@ export class PlayersController {
     }
 
     if (type == ERemoveType.HARD) {
-      return await this.playerService.remove(id);
+      await this.playerService.remove(id).then(() => {
+        return `Player data deleted succesfully`;
+      });
     } else if (type == ERemoveType.SOFT) {
-      await this.playerService.softDelete(id);
+      await this.playerService.softDelete(id).then(() => {
+        return `Player data moved to trash`;
+      });
     } else {
       throw new HttpException(`${type} isn't a valid delete option`, 400);
     }

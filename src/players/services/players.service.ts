@@ -37,13 +37,22 @@ export class PlayersService {
   }
 
   async findById(id: string | number): Promise<Document> {
-    return await this.playerModel
+    const player = await this.playerModel
       .findOne({ _id: id, deletedAt: null })
       .lean()
       .exec()
       .catch((e) => {
         throw new HttpException(e, 500);
       });
+
+    if (!player) {
+      throw new HttpException(
+        `Player with the id: ${id} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return player;
   }
 
   async create(player: PlayerDto) {
@@ -52,6 +61,7 @@ export class PlayersService {
         name: player.name,
         personalInfo: player.personalInfo,
         statistics: player.statistics,
+        mediaList: player.mediaList,
       })
       .catch((e) => {
         throw new HttpException(e, 500);
@@ -73,6 +83,7 @@ export class PlayersService {
             name: player.name,
             personalInfo: player.personalInfo,
             statistics: player.statistics,
+            mediaList: player.mediaList,
           },
         },
         { new: true },
@@ -91,28 +102,42 @@ export class PlayersService {
   //Move the player to trash, but you can recover it
   async softDelete(id: string | number) {
     const player = await this.playerModel.findById(id);
+    if (!player) {
+      throw new HttpException(`Player not found`, HttpStatus.NOT_FOUND);
+    }
+
     player.deletedAt = new Date();
     player.markModified('deletedAt');
 
-    player.save().catch((e) => {
-      throw new HttpException(e, 500);
-    });
-    return HttpStatus.OK;
-  }
-
-  async findTrash() {
-    return await this.playerModel
-      .find({ deletedAt: { $ne: null } })
+    player
+      .save()
+      .then(() => {
+        return HttpStatus.OK;
+      })
       .catch((e) => {
-        throw new HttpException(e, 500);
+        throw new HttpException(`Failed to soft delete the player ${e}`, 500);
       });
   }
 
-  async recover(id: string | number) {
+  async pullDataFromTrash() {
+    return await this.playerModel
+      .find({ deletedAt: { $ne: null } })
+      .catch((e) => {
+        throw new HttpException(
+          `Failed to retrieve players from trash: ${e}`,
+          500,
+        );
+      });
+  }
+
+  async recoverFromTrash(id: string | number) {
     return await this.playerModel
       .findOneAndUpdate({ _id: id }, { deletedAt: null })
       .catch((e) => {
-        throw new HttpException(e, 500);
+        throw new HttpException(
+          `Failed to recover player from trash ${e}`,
+          500,
+        );
       });
   }
 }

@@ -7,4 +7,6 @@ export class PlayerDto {
   personalInfo: Map<string, any>;
 
   statistics: Map<string, string>;
+
+  mediaList: Map<string, string>;
 }

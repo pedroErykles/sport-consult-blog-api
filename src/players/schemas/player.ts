@@ -14,6 +14,10 @@ export const playerSchema = new Schema(
       type: Schema.Types.Map,
       of: Schema.Types.String,
     },
+    mediaList: {
+      type: Schema.Types.Map,
+      of: Schema.Types.String,
+    },
     deletedAt: {
       type: Schema.Types.Date,
       default: null,
