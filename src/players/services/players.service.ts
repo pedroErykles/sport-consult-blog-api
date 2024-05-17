@@ -15,23 +15,42 @@ export class PlayersService {
     filter?: FilterQuery<Player>,
     options?: QueryOptions<Player>,
   ) {
-    const result = !!pagination
-      ? await this.playerModel
-          .find(filter, undefined, options)
-          .skip(pagination.page - 1)
-          .limit(pagination.limit)
-          .lean()
-          .exec()
-          .catch((e) => {
-            throw new HttpException(e, 500);
-          })
-      : await this.playerModel
-          .find(filter, undefined, options)
-          .lean()
-          .exec()
-          .catch((e) => {
-            throw new HttpException(e, 500);
-          });
+    if (pagination) {
+      const { limit, page } = pagination;
+
+      if (!(limit > 0 && page > 0)) {
+        throw new HttpException(
+          `Limit and page must be greater than 0`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return await this.playerModel
+        .find(filter, undefined, options)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ name: 1 })
+        .lean()
+        .exec()
+        .catch((e) => {
+          throw new HttpException(
+            `Unable to search players. Please try again later`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        });
+    }
+
+    const result = await this.playerModel
+      .find(filter, undefined, options)
+      .sort({ name: 1 })
+      .lean()
+      .exec()
+      .catch((e) => {
+        throw new HttpException(
+          `Unable to search players. Please try again later`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      });
 
     return result;
   }
@@ -42,7 +61,10 @@ export class PlayersService {
       .lean()
       .exec()
       .catch((e) => {
-        throw new HttpException(e, 500);
+        throw new HttpException(
+          `Unable to search player. Please try again later.`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       });
 
     if (!player) {
@@ -59,43 +81,77 @@ export class PlayersService {
     const createdPlayer = await this.playerModel
       .create({
         name: player.name,
-        personalInfo: player.personalInfo,
+        dateOfBirth: player.dateOfBirth,
+        clubName: player.clubName,
+        citizenship: player.citizenship,
+        height: player.height,
+        position: player.position,
+        weight: player.weight,
+        foot: player.foot,
         statistics: player.statistics,
         mediaList: player.mediaList,
       })
       .catch((e) => {
-        throw new HttpException(e, 500);
+        throw new HttpException(
+          `Unable to create player`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       });
 
     const savedResult = await createdPlayer.save().catch((e) => {
-      throw new HttpException(e, 500);
+      throw new HttpException(
+        `Unable to create player`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     });
 
     return { id: savedResult.id, created: !!savedResult.id };
   }
 
   async update(id: string | number, player: PlayerDto) {
-    return await this.playerModel
-      .findOneAndUpdate(
+    const updatedPlayer = await this.playerModel
+      .updateOne(
         { _id: id, deletedAt: null },
         {
           $set: {
             name: player.name,
-            personalInfo: player.personalInfo,
+            dateOfBirth: player.dateOfBirth,
+            clubName: player.clubName,
+            citizenship: player.citizenship,
+            height: player.height,
+            position: player.position,
+            weight: player.weight,
+            foot: player.foot,
             statistics: player.statistics,
             mediaList: player.mediaList,
           },
         },
         { new: true },
       )
+      .lean()
       .catch((e) => {
-        throw new HttpException(e, 500);
+        throw new HttpException(
+          `Unable to update player`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       });
+
+    return updatedPlayer;
   }
 
   async remove(id: string | number) {
+    if (!this.playerModel.findById(id).lean()) {
+      throw new HttpException(
+        `Player with id: ${id} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
     return await this.playerModel.deleteOne({ _id: id }).catch((e) => {
-      throw new HttpException(e, 500);
+      throw new HttpException(
+        `Unable to delete player`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     });
   }
 
@@ -103,40 +159,51 @@ export class PlayersService {
   async softDelete(id: string | number) {
     const player = await this.playerModel.findById(id);
     if (!player) {
-      throw new HttpException(`Player not found`, HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        `Player not found with id ${id}`,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     player.deletedAt = new Date();
     player.markModified('deletedAt');
 
-    player
-      .save()
-      .then(() => {
-        return HttpStatus.OK;
-      })
-      .catch((e) => {
-        throw new HttpException(`Failed to soft delete the player ${e}`, 500);
-      });
+    player.save().catch((e) => {
+      throw new HttpException(
+        `Unable to move player to trash.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    });
   }
 
   async pullDataFromTrash() {
     return await this.playerModel
       .find({ deletedAt: { $ne: null } })
+      .lean()
+      .exec()
       .catch((e) => {
         throw new HttpException(
-          `Failed to retrieve players from trash: ${e}`,
-          500,
+          `Failed to retrieve players from trash`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       });
   }
 
   async recoverFromTrash(id: string | number) {
+    const player = await this.playerModel.findById(id).lean().exec();
+    if (!player) {
+      throw new HttpException(
+        `Player with id: ${id} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
     return await this.playerModel
-      .findOneAndUpdate({ _id: id }, { deletedAt: null })
+      .updateOne({ _id: id }, { deletedAt: null })
       .catch((e) => {
         throw new HttpException(
-          `Failed to recover player from trash ${e}`,
-          500,
+          `Failed to recover player from trash`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       });
   }
