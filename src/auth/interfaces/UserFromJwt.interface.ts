@@ -1,5 +1,5 @@
 export interface UserFromJwt {
-  id: string;
+  id: string | unknown;
   login: string;
   email: string;
 }
