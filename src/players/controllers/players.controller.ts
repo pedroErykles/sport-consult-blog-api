@@ -9,6 +9,8 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { PlayersService } from '../services/players.service';
 import { isValidObjectId } from 'mongoose';
@@ -16,10 +18,16 @@ import { PaginationOptions, PlayerDto } from '../types/dto/dto';
 import { IsPublic } from 'src/auth/decorators/is-public.decorator';
 import { ERemoveType } from '../types/enums/remove';
 import { footValues } from '../types/enums/foot';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { fileDTO } from '../services/upload.dto';
+import { UploadService } from '../services/upload.service';
 
 @Controller('players')
 export class PlayersController {
-  constructor(private playerService: PlayersService) {}
+  constructor(
+    private playerService: PlayersService,
+    private uploadService: UploadService,
+  ) {}
 
   @IsPublic()
   @Get()
@@ -73,6 +81,37 @@ export class PlayersController {
     return this.playerService.create(player);
   }
 
+  @Post('upload/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  async addMediaToPlayer(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('id') playerId: string,
+    @Query('tag') tag: string,
+  ) {
+    if (!isValidObjectId(playerId)) {
+      throw new HttpException(
+        `The id in the params isn't a valid id`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.playerService.exists(playerId);
+
+    const bucket = process.env.PLAYERS_FILE_BUCKET;
+
+    const fileDto: fileDTO = {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
+      size: file.size,
+      originalname: file.filename,
+      buffer: file.buffer,
+    };
+
+    const url = await this.uploadService.upload(fileDto, bucket);
+
+    return this.playerService.addFile(playerId, tag, url);
+  }
+
   @Put('recovery/:id')
   async recoveryFromTrash(@Param('id') id: string) {
     if (!isValidObjectId(id)) {
@@ -80,6 +119,34 @@ export class PlayersController {
     }
 
     return await this.playerService.recoverFromTrash(id);
+  }
+
+  @Put('setProfilePhoto/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  async setProfilePicture(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('id') playerId: string,
+  ) {
+    if (!isValidObjectId(playerId)) {
+      throw new HttpException(
+        `The id in the params isn't a valid id`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const bucket = process.env.PLAYERS_FILE_BUCKET;
+
+    const fileDto: fileDTO = {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
+      size: file.size,
+      originalname: file.originalname,
+      buffer: file.buffer,
+    };
+
+    const url = await this.uploadService.upload(fileDto, bucket);
+
+    return this.playerService.setProfilePicture(playerId, url);
   }
 
   @Put(':id')

@@ -1,5 +1,5 @@
 export interface UserPayload {
-  sub: string;
+  sub: string | unknown;
   login: string;
   email: string;
   iat?: number;

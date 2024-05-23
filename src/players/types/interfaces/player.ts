@@ -4,6 +4,8 @@ import { EFoot } from '../enums/foot';
 export interface Player extends Document {
   name: string;
 
+  profilePictureUrl: string;
+
   dateOfBirth: Date;
 
   clubName: string;

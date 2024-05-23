@@ -4,22 +4,38 @@ import mongoose, { Model } from 'mongoose';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import * as bcrypt from 'bcryptjs';
+import { UploadService } from 'src/shared/upload/upload.service';
+import { fileDTO } from 'src/shared/upload/upload.dto';
+import passport, { use } from 'passport';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel('User') private readonly userModel: Model<User>) {}
+  constructor(
+    @InjectModel('User') private readonly userModel: Model<User>,
+    private readonly uploadService: UploadService,
+  ) {}
 
   isValidObjectId(id: string): boolean {
     return mongoose.Types.ObjectId.isValid(id);
   }
 
+  verifyUserData(user: UserDto): Error {
+    if (!user.login) {
+      return new Error('Login is mandatory');
+    }
+
+    if (!user.email) {
+      return new Error('Email is mandatory');
+    }
+    if (!user.password) {
+      return new Error('Password is mandatory');
+    }
+  }
+
   async getAll() {
     try {
-      const users = await this.userModel.find().exec();
-      return {
-        ...users,
-        password: undefined,
-      };
+      const users = await this.userModel.find().select('-password').exec();
+      return users;
     } catch (error) {
       throw new HttpException(
         'Failed to retrieve users',
@@ -32,12 +48,12 @@ export class UserService {
     try {
       if (!this.isValidObjectId(id)) {
         throw new HttpException(
-          `'${id}' is a invalid user ID`,
+          `${id} is a invalid user ID`,
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      const user = await this.userModel.findById(id).exec();
+      const user = await this.userModel.findById(id).select('-password').exec();
 
       if (!user) {
         throw new HttpException(`User ${id} not found`, HttpStatus.NOT_FOUND);
@@ -49,9 +65,16 @@ export class UserService {
     }
   }
 
-  async create(user: UserDto, confirmPassword: string) {
+  async create(user: UserDto, confirmPassword: string, image: fileDTO) {
     const loginExists = await this.userModel.findOne({ login: user.login });
     const emailExists = await this.userModel.findOne({ email: user.email });
+    let imageURL = '';
+
+    const verifyUserData = this.verifyUserData(user);
+
+    if (verifyUserData) {
+      throw new HttpException(verifyUserData.message, HttpStatus.BAD_REQUEST);
+    }
 
     if (loginExists) {
       throw new HttpException(
@@ -72,6 +95,10 @@ export class UserService {
       );
     }
 
+    if (image) {
+      imageURL = await this.uploadService.upload(image, 'users-images');
+    }
+
     try {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user.password, salt);
@@ -79,11 +106,13 @@ export class UserService {
       const createdUser = new this.userModel({
         ...user,
         password: hashedPassword,
+        image: imageURL,
       });
       await createdUser.save();
 
       return { msg: 'User created with successfully' };
     } catch (error) {
+      console.log(error);
       throw new HttpException(
         'Failed to create user',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -92,17 +121,53 @@ export class UserService {
   }
 
   async update(id: string, user: UserDto) {
-    try {
-      if (!this.isValidObjectId(id)) {
-        throw new HttpException(
-          `'${id} is a invalid user ID'`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+    if (!this.isValidObjectId(id)) {
+      throw new HttpException(
+        `${id} is a invalid user ID`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const userData = await this.userModel.findById(id);
 
-      await this.userModel.updateOne({ _id: id }, user).exec();
+    if (!userData) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const verifyUserData = this.verifyUserData(user);
+
+    if (verifyUserData) {
+      throw new HttpException(verifyUserData.message, HttpStatus.BAD_REQUEST);
+    }
+
+    const loginExists = await this.userModel.findOne({ login: user.login });
+    const emailExists = await this.userModel.findOne({ email: user.email });
+
+    if (user.login !== userData.login && loginExists) {
+      throw new HttpException(
+        'This email is already in use',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    if (user.email !== userData.email && emailExists) {
+      throw new HttpException(
+        'This email is already in use',
+        HttpStatus.CONFLICT,
+      );
+    }
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(user.password, salt);
+
+      const userUpdated = {
+        ...user,
+        password: hashedPassword,
+      };
+      await this.userModel.updateOne({ _id: id }, userUpdated).exec();
+
       return { msg: 'User updated with successfully' };
     } catch (error) {
+      console.log(error);
       throw new HttpException(
         'Failed to update user',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -111,13 +176,19 @@ export class UserService {
   }
 
   async delete(id: string) {
+    if (!this.isValidObjectId(id)) {
+      throw new HttpException(
+        `${id} is a invalid user ID`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const user = await this.userModel.findById(id);
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
     try {
-      if (!this.isValidObjectId(id)) {
-        throw new HttpException(
-          `'${id} is a invalid user ID'`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
       await this.userModel.deleteOne({ _id: id }).exec();
 
       return { msg: 'User deleted with successfully' };

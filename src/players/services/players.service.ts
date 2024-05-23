@@ -77,6 +77,13 @@ export class PlayersService {
     return player;
   }
 
+  async exists(id: string | number) {
+    const result = await this.playerModel.exists({ _id: id, deletedAt: null });
+    if (!result) {
+      throw new HttpException(`Player not found`, HttpStatus.NOT_FOUND);
+    }
+  }
+
   async create(player: PlayerDto) {
     const createdPlayer = await this.playerModel
       .create({
@@ -109,9 +116,15 @@ export class PlayersService {
   }
 
   async update(id: string | number, player: PlayerDto) {
+    const exists = await this.playerModel.exists({ _id: id, deletedAt: null });
+
+    if (!exists) {
+      throw new HttpException(`Player not found`, HttpStatus.NOT_FOUND);
+    }
+
     const updatedPlayer = await this.playerModel
       .updateOne(
-        { _id: id, deletedAt: null },
+        { _id: id },
         {
           $set: {
             name: player.name,
@@ -132,6 +145,48 @@ export class PlayersService {
       .catch((e) => {
         throw new HttpException(
           `Unable to update player`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      });
+
+    return updatedPlayer;
+  }
+
+  async setProfilePicture(id: string | number, url: string) {
+    const updatedPlayer = await this.playerModel
+      .updateOne(
+        { _id: id, deletedAt: null },
+        {
+          profilePictureUrl: url,
+        },
+        { new: true },
+      )
+      .lean()
+      .catch((e) => {
+        throw new HttpException(
+          `Unable to add file to player`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      });
+
+    return updatedPlayer;
+  }
+
+  async addFile(id: string, tag: string, url: string) {
+    const updatedPlayer = await this.playerModel
+      .updateOne(
+        { _id: id, deletedAt: null },
+        {
+          $set: {
+            [`mediaList.${tag}`]: url,
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .catch((e) => {
+        throw new HttpException(
+          `Unable to add file to player`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       });
@@ -179,6 +234,7 @@ export class PlayersService {
   async pullDataFromTrash() {
     return await this.playerModel
       .find({ deletedAt: { $ne: null } })
+      .select(['name', 'deletedAt'])
       .lean()
       .exec()
       .catch((e) => {
@@ -190,7 +246,11 @@ export class PlayersService {
   }
 
   async recoverFromTrash(id: string | number) {
-    const player = await this.playerModel.findById(id).lean().exec();
+    const player = await this.playerModel
+      .findOne({ _id: id, deletedAt: { $ne: null } })
+      .lean()
+      .exec();
+
     if (!player) {
       throw new HttpException(
         `Player with id: ${id} not found`,

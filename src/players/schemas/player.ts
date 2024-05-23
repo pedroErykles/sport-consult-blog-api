@@ -7,6 +7,9 @@ const playerSchema = new Schema(
       type: Schema.Types.String,
       required: true,
     },
+    profilePictureUrl: {
+      type: Schema.Types.String,
+    },
     dateOfBirth: {
       type: Schema.Types.Date,
       required: true,
