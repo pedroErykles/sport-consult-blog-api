@@ -26,7 +26,7 @@ export class UploadService {
 
     if (error) {
       console.log(error);
-      throw new Error(`Failed to upload ${error.message}`);
+      throw new Error(`Failed to upload image to supabase project`);
     }
 
     const imageURL = await supabase.storage
