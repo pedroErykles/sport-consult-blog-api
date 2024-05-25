@@ -139,7 +139,7 @@ export class PlayersController {
     return await this.playerService.recoverFromTrash(id);
   }
 
-  @Put('setProfilePhoto/:id')
+  @Put('setProfilePicture/:id')
   @UseInterceptors(FileInterceptor('file'))
   async setProfilePicture(
     @UploadedFile() file: Express.Multer.File,
