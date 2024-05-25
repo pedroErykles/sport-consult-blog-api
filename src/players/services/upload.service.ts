@@ -21,12 +21,12 @@ export class UploadService {
       .from(`${bucket}`)
       .upload(file.originalname, file.buffer, {
         upsert: true,
-        contentType: 'image/jpeg',
+        contentType: file.mimetype,
       });
 
     if (error) {
       console.log(error);
-      throw new Error(`Failed to upload image to supabase project`);
+      throw new Error(`Failed to upload file to supabase project`);
     }
 
     const imageURL = await supabase.storage

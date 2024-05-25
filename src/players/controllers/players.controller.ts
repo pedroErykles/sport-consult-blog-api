@@ -11,10 +11,12 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { PlayersService } from '../services/players.service';
 import { isValidObjectId } from 'mongoose';
-import { PaginationOptions, PlayerDto } from '../types/dto/dto';
+import { PlayerDto } from '../types/dto/dto';
 import { IsPublic } from 'src/auth/decorators/is-public.decorator';
 import { ERemoveType } from '../types/enums/remove';
 import { footValues } from '../types/enums/foot';
@@ -31,24 +33,40 @@ export class PlayersController {
 
   @IsPublic()
   @Get()
-  async findPlayers(@Body() paginationOp?: PaginationOptions) {
-    if (paginationOp) {
-      const { limit, page } = paginationOp;
+  async findPlayers(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<{
+    searchResult: any[];
+    pagination: { limit: number; page: number; length: number };
+  }> {
+    const players = await this.playerService.find(
+      { limit, page },
+      { deletedAt: null },
+    );
 
-      const players = await this.playerService.find(
-        {
-          limit: limit,
-          page: page,
-        },
-        { deletedAt: null },
-      );
+    const length = players.length;
+    const transformedPlayers = players.map((player) => {
+      return {
+        id: player._id,
+        name: player.name,
+        profilePicture: player.profilePictureUrl,
+        citizenship: player.citizenship,
+        clubName: player.clubName,
+        dateOfBirth: player.dateOfBirth,
+        height: player.height,
+        foot: player.foot,
+        position: player.position,
+        weight: player.weight,
+        statistics: player.statistics,
+        mediaList: player.mediaList,
+      };
+    });
 
-      const pagination = { limit, page, total: players.length };
-
-      return { results: players, pagination };
-    }
-
-    return await this.playerService.find(undefined, { deletedAt: null });
+    return {
+      searchResult: transformedPlayers,
+      pagination: { limit, page, length },
+    };
   }
 
   @Get('/trash')

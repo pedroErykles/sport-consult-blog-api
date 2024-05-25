@@ -15,7 +15,7 @@ export class PlayersService {
     filter?: FilterQuery<Player>,
     options?: QueryOptions<Player>,
   ) {
-    if (pagination) {
+    if (pagination != undefined) {
       const { limit, page } = pagination;
 
       if (!(limit > 0 && page > 0)) {

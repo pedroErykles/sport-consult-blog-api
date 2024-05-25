@@ -1,16 +1,13 @@
-import {
-  IsDate,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsDate, IsEnum, IsNotEmpty, IsString } from '@nestjs/class-validator';
 import { EFoot } from '../enums/foot';
 export class PlayerDto {
+  id?: string;
+
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  profilePicture?: string;
 
   @IsNotEmpty()
   @IsDate()
@@ -43,14 +40,4 @@ export class PlayerDto {
   statistics: Map<string, string>;
 
   mediaList: Map<string, string>;
-}
-
-export class PaginationOptions {
-  @IsNumber()
-  @Min(1)
-  limit: number;
-
-  @IsNumber()
-  @Min(1)
-  page: number;
 }
