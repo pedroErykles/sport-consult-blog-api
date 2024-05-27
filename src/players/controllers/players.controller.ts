@@ -14,21 +14,21 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
-import { PlayersService } from '../services/players.service';
+import { PlayersService } from '../services/players/players.service';
 import { isValidObjectId } from 'mongoose';
 import { PlayerDto } from '../types/dto/dto';
 import { IsPublic } from 'src/auth/decorators/is-public.decorator';
 import { ERemoveType } from '../types/enums/remove';
 import { footValues } from '../types/enums/foot';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { fileDTO } from '../services/upload.dto';
-import { UploadService } from '../services/upload.service';
+import { fileDTO } from '../services/supabase/upload.dto';
+import { SupabaseService } from '../services/supabase/supabase.service';
 
 @Controller('players')
 export class PlayersController {
   constructor(
     private playerService: PlayersService,
-    private uploadService: UploadService,
+    private uploadService: SupabaseService,
   ) {}
 
   @IsPublic()
@@ -152,19 +152,7 @@ export class PlayersController {
       );
     }
 
-    const bucket = process.env.PLAYERS_FILE_BUCKET;
-
-    const fileDto: fileDTO = {
-      fieldname: file.fieldname,
-      mimetype: file.mimetype,
-      size: file.size,
-      originalname: file.originalname,
-      buffer: file.buffer,
-    };
-
-    const url = await this.uploadService.upload(fileDto, bucket);
-
-    return this.playerService.setProfilePicture(playerId, url);
+    return this.playerService.setProfilePicture(playerId, file);
   }
 
   @Put(':id')

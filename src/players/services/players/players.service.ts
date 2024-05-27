@@ -1,13 +1,16 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Document, FilterQuery, Model, QueryOptions } from 'mongoose';
-import { Player } from '../types/interfaces/player';
-import { PlayerDto } from '../types/dto/dto';
+import { SupabaseService } from '../supabase/supabase.service';
+import { fileDTO } from '../supabase/upload.dto';
+import { PlayerDto } from 'src/players/types/dto/dto';
+import { Player } from 'src/players/types/interfaces/player';
 
 @Injectable()
 export class PlayersService {
   constructor(
     @InjectModel('Player') private readonly playerModel: Model<Player>,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   async find(
@@ -152,7 +155,27 @@ export class PlayersService {
     return updatedPlayer;
   }
 
-  async setProfilePicture(id: string | number, url: string) {
+  async setProfilePicture(id: string | number, file: Express.Multer.File) {
+    const bucket = process.env.PLAYERS_FILE_BUCKET;
+
+    const player = await this.playerModel.findById(id);
+
+    const previousUrl = player ? player.profilePictureUrl : null;
+
+    if (previousUrl) {
+      await this.supabaseService.remove(previousUrl, bucket);
+    }
+
+    const fileDto: fileDTO = {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
+      size: file.size,
+      originalname: file.originalname,
+      buffer: file.buffer,
+    };
+
+    const url = await this.supabaseService.upload(fileDto, bucket);
+
     const updatedPlayer = await this.playerModel
       .updateOne(
         { _id: id, deletedAt: null },
