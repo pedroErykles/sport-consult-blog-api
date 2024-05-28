@@ -13,8 +13,8 @@ import { UserService } from '../services/user.service';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { fileDTO } from 'src/shared/upload/upload.dto';
 import { IsPublic } from 'src/auth/decorators/is-public.decorator';
+import { fileDTO } from 'src/shared/supabase/types/upload.dto';
 
 @Controller('users')
 export class UsersController {
