@@ -4,7 +4,7 @@ import mongoose, { Model } from 'mongoose';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import * as bcrypt from 'bcryptjs';
-import { SupabaseService } from 'src/shared/supabase/upload.service';
+import { SupabaseService } from 'src/shared/supabase/supabase.service';
 import { fileDTO } from 'src/shared/supabase/types/upload.dto';
 
 @Injectable()

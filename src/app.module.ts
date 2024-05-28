@@ -7,12 +7,18 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { PlayersModule } from './players/players.module';
 
 config();
 const dbURL = process.env.DB_URL;
 
 @Module({
-  imports: [UsersModule, MongooseModule.forRoot(dbURL), AuthModule],
+  imports: [
+    UsersModule,
+    MongooseModule.forRoot(dbURL),
+    AuthModule,
+    PlayersModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
