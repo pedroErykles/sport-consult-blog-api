@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { fileDTO } from './upload.dto';
+import { fileDTO } from './types/upload.dto';
 import { createClient } from '@supabase/supabase-js';
 
 @Injectable()

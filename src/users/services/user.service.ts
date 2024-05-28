@@ -4,15 +4,15 @@ import mongoose, { Model } from 'mongoose';
 import { User } from '../interface/users.interface';
 import { UserDto } from '../dto/user.dto';
 import * as bcrypt from 'bcryptjs';
-import { UploadService } from 'src/shared/upload/upload.service';
-import { fileDTO } from 'src/shared/upload/upload.dto';
+import { SupabaseService } from 'src/shared/supabase/supabase.service';
 import passport, { use } from 'passport';
+import { fileDTO } from 'src/shared/supabase/types/upload.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<User>,
-    private readonly uploadService: UploadService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   isValidObjectId(id: string): boolean {
@@ -96,7 +96,7 @@ export class UserService {
     }
 
     if (image) {
-      imageURL = await this.uploadService.upload(image, 'users-images');
+      imageURL = await this.supabaseService.upload(image, 'users-images');
     }
 
     try {

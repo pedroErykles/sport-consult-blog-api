@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Document, FilterQuery, Model, QueryOptions } from 'mongoose';
-import { SupabaseService } from '../supabase/supabase.service';
-import { fileDTO } from '../supabase/upload.dto';
 import { PlayerDto } from 'src/players/types/dto/dto';
 import { Player } from 'src/players/types/interfaces/player';
+import { SupabaseService } from 'src/shared/supabase/supabase.service';
+import { fileDTO } from 'src/shared/supabase/types/upload.dto';
 
 @Injectable()
 export class PlayersService {
@@ -170,7 +170,7 @@ export class PlayersService {
       fieldname: file.fieldname,
       mimetype: file.mimetype,
       size: file.size,
-      originalname: file.originalname,
+      originalname: `${player.name}-profile`.toLowerCase().replace(' ', '-'),
       buffer: file.buffer,
     };
 
@@ -195,7 +195,28 @@ export class PlayersService {
     return updatedPlayer;
   }
 
-  async addFile(id: string, tag: string, url: string) {
+  async uploadMedia(id: string, tag: string, file: Express.Multer.File) {
+    const playerExists = await this.playerModel.exists({
+      _id: id,
+      deletedAt: null,
+    });
+
+    if (!playerExists) {
+      throw new HttpException(`Player not found`, HttpStatus.NOT_FOUND);
+    }
+
+    const bucket = process.env.PLAYERS_FILE_BUCKET;
+
+    const fileDto: fileDTO = {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
+      size: file.size,
+      originalname: file.originalname,
+      buffer: file.buffer,
+    };
+
+    const url = await this.supabaseService.upload(fileDto, bucket);
+
     const updatedPlayer = await this.playerModel
       .updateOne(
         { _id: id, deletedAt: null },
@@ -217,7 +238,7 @@ export class PlayersService {
     return updatedPlayer;
   }
 
-  async remove(id: string | number) {
+  async removePlayer(id: string | number) {
     if (!this.playerModel.findById(id).lean()) {
       throw new HttpException(
         `Player with id: ${id} not found`,

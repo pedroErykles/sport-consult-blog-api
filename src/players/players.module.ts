@@ -3,7 +3,7 @@ import { PlayersController } from './controllers/players.controller';
 import { PlayersService } from './services/players/players.service';
 import playerSchema from './schemas/player';
 import { MongooseModule } from '@nestjs/mongoose';
-import { SupabaseService } from './services/supabase/supabase.service';
+import { SupabaseService } from 'src/shared/supabase/supabase.service';
 
 @Module({
   imports: [

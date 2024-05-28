@@ -21,14 +21,13 @@ import { IsPublic } from 'src/auth/decorators/is-public.decorator';
 import { ERemoveType } from '../types/enums/remove';
 import { footValues } from '../types/enums/foot';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { fileDTO } from '../services/supabase/upload.dto';
-import { SupabaseService } from '../services/supabase/supabase.service';
+import { SupabaseService } from 'src/shared/supabase/supabase.service';
 
 @Controller('players')
 export class PlayersController {
   constructor(
     private playerService: PlayersService,
-    private uploadService: SupabaseService,
+    private supabaseService: SupabaseService,
   ) {}
 
   @IsPublic()
@@ -99,9 +98,9 @@ export class PlayersController {
     return this.playerService.create(player);
   }
 
-  @Post('upload/:id')
+  @Put('upload/:id')
   @UseInterceptors(FileInterceptor('file'))
-  async addMediaToPlayer(
+  async uploadMediaToPlayer(
     @UploadedFile() file: Express.Multer.File,
     @Param('id') playerId: string,
     @Query('tag') tag: string,
@@ -113,21 +112,9 @@ export class PlayersController {
       );
     }
 
-    await this.playerService.exists(playerId);
+    console.log(file);
 
-    const bucket = process.env.PLAYERS_FILE_BUCKET;
-
-    const fileDto: fileDTO = {
-      fieldname: file.fieldname,
-      mimetype: file.mimetype,
-      size: file.size,
-      originalname: file.filename,
-      buffer: file.buffer,
-    };
-
-    const url = await this.uploadService.upload(fileDto, bucket);
-
-    return this.playerService.addFile(playerId, tag, url);
+    return this.playerService.uploadMedia(playerId, tag, file);
   }
 
   @Put('recovery/:id')
@@ -181,7 +168,7 @@ export class PlayersController {
     }
 
     if (type == ERemoveType.HARD) {
-      await this.playerService.remove(id).then(() => {
+      await this.playerService.removePlayer(id).then(() => {
         return `Player data deleted succesfully`;
       });
     } else if (type == ERemoveType.SOFT) {
