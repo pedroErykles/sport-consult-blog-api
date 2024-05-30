@@ -10,6 +10,12 @@ const playerSchema = new Schema(
     profilePictureUrl: {
       type: Schema.Types.String,
     },
+    card: {
+      type: Schema.Types.String,
+    },
+    number: {
+      type: Schema.Types.Number,
+    },
     dateOfBirth: {
       type: Schema.Types.Date,
       required: true,
