@@ -50,6 +50,8 @@ export class PlayersController {
         id: player._id,
         name: player.name,
         profilePicture: player.profilePictureUrl,
+        card: player.card,
+        number: player.number,
         citizenship: player.citizenship,
         clubName: player.clubName,
         dateOfBirth: player.dateOfBirth,
@@ -112,8 +114,6 @@ export class PlayersController {
       );
     }
 
-    console.log(file);
-
     return this.playerService.uploadMedia(playerId, tag, file);
   }
 
@@ -126,7 +126,7 @@ export class PlayersController {
     return await this.playerService.recoverFromTrash(id);
   }
 
-  @Put('setProfilePicture/:id')
+  @Put('profile/:id')
   @UseInterceptors(FileInterceptor('file'))
   async setProfilePicture(
     @UploadedFile() file: Express.Multer.File,
@@ -139,7 +139,53 @@ export class PlayersController {
       );
     }
 
+    if (
+      ![
+        'image/jpeg',
+        'image/png',
+        'image/bmp',
+        'image/webp',
+        'image/svg+xml',
+      ].includes(file.mimetype)
+    ) {
+      throw new HttpException(
+        `Profile picture must to be an image`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     return this.playerService.setProfilePicture(playerId, file);
+  }
+
+  @Put('card/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  async setPlayerCard(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('id') id: string,
+  ) {
+    if (!isValidObjectId(id)) {
+      throw new HttpException(
+        `The id in the params isn't a valid id`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (
+      ![
+        'image/png',
+        'image/webp',
+        'image/svg+xml',
+        'image/tiff',
+        'image/tif',
+      ].includes(file.mimetype)
+    ) {
+      throw new HttpException(
+        `Profile picture must to be at PNG, WebP, SVG or TIFF format`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return this.playerService.setPlayerCard(id, file);
   }
 
   @Put(':id')
@@ -178,7 +224,7 @@ export class PlayersController {
     } else {
       throw new HttpException(
         `${type} isn't a valid delete option`,
-        HttpStatus.NOT_FOUND,
+        HttpStatus.BAD_REQUEST,
       );
     }
   }

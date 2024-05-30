@@ -1,5 +1,6 @@
 import { IsDate, IsEnum, IsNotEmpty, IsString } from '@nestjs/class-validator';
 import { EFoot } from '../enums/foot';
+import { IsNumber } from 'class-validator';
 export class PlayerDto {
   id?: string;
 
@@ -8,6 +9,12 @@ export class PlayerDto {
   name: string;
 
   profilePicture?: string;
+
+  card?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  number: string;
 
   @IsNotEmpty()
   @IsDate()

@@ -170,7 +170,11 @@ export class PlayersService {
       fieldname: file.fieldname,
       mimetype: file.mimetype,
       size: file.size,
-      originalname: `${player.name}-profile`.toLowerCase().replace(' ', '-'),
+      originalname: `${player.name}-profile`
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9 ]/g, ' ')
+        .replace(' ', '-')
+        .replace(' ', ''),
       buffer: file.buffer,
     };
 
@@ -187,7 +191,51 @@ export class PlayersService {
       .lean()
       .catch((e) => {
         throw new HttpException(
-          `Unable to add file to player`,
+          `Unable to set player profile picture`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      });
+
+    return updatedPlayer;
+  }
+
+  async setPlayerCard(id: string | number, file: Express.Multer.File) {
+    const bucket = process.env.PLAYERS_FILE_BUCKET;
+
+    const player = await this.playerModel.findById(id);
+
+    const previousUrl = player ? player.profilePictureUrl : null;
+
+    if (previousUrl) {
+      await this.supabaseService.remove(previousUrl, bucket);
+    }
+
+    const fileDto: fileDTO = {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
+      size: file.size,
+      originalname: `${player.name}-card`
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9 ]/g, ' ')
+        .replace(' ', '-')
+        .replace(' ', ''),
+      buffer: file.buffer,
+    };
+
+    const url = await this.supabaseService.upload(fileDto, bucket);
+
+    const updatedPlayer = await this.playerModel
+      .updateOne(
+        { _id: id, deletedAt: null },
+        {
+          card: url,
+        },
+        { new: true },
+      )
+      .lean()
+      .catch((e) => {
+        throw new HttpException(
+          `Unable to set player card`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       });
@@ -211,7 +259,7 @@ export class PlayersService {
       fieldname: file.fieldname,
       mimetype: file.mimetype,
       size: file.size,
-      originalname: file.originalname,
+      originalname: `${tag}-${id}-${file.originalname}`,
       buffer: file.buffer,
     };
 

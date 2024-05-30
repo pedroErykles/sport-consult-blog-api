@@ -6,6 +6,10 @@ export interface Player extends Document {
 
   profilePictureUrl: string;
 
+  card: string;
+
+  number: number;
+
   dateOfBirth: Date;
 
   clubName: string;
