@@ -52,8 +52,7 @@ const playerSchema = new Schema(
       default: null,
     },
   },
-  { timestamps: true },
-);
+  { timestamps: true });
 
 /*playerSchema.pre('save', function (next) {
   console.log('middleware is invoked');
