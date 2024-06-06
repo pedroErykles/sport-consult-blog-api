@@ -1,19 +1,19 @@
-import mongoose, { model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export const userSchema = new mongoose.Schema({
   login: {
-    type: String,
+    type: Schema.Types.String,
     unique: true,
   },
   email: {
-    type: String,
+    type: Schema.Types.String,
     unique: true,
   },
   password: {
-    type: String,
+    type: Schema.Types.String,
   },
   image: {
-    type: String,
+    type: Schema.Types.String,
   },
 });
 
